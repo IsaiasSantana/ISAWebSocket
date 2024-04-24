@@ -12,4 +12,5 @@ public enum SocketError: Error {
     case failure(Int)
     case malformedURL
     case failureToStartConnection
+    case failureSendPing
 }

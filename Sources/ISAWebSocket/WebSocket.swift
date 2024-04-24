@@ -9,5 +9,5 @@ import Foundation
 
 public protocol WebSocketClient {
     func startConnection()
-    func sendPing(pongHandler: @escaping((Error?) -> Void))
+    func sendPing()
 }

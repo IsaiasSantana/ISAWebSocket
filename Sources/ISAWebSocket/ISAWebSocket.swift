@@ -5,43 +5,16 @@ public protocol ISAWebSocketDelegate: AnyObject {
     func socketDidCloseConnection(_ socket: WebSocketClient)
     func socket(_ socket: WebSocketClient, didReceiveMessage message: SocketMessage)
     func socket(_ socket: WebSocketClient, didReceiveError error: SocketError)
+    func socketDidReceivePong(_ socket: WebSocketClient)
+    func socket(_ socket: WebSocketClient, pongDidFailWithError error: SocketError)
     func socketDidFailToStartConnection(_ socket: WebSocketClient)
-}
-
-extension String {
-    static let ws = "ws"
-    static let wss = "wss"
-}
-
-struct SocketFactory {
-    static func makeConnection(url: URL) -> NWConnection {
-        let parameters = makeWebSocketParameters(url: url)
-
-        return NWConnection(to: .url(url), using: parameters)
-    }
-    
-    private static func makeWebSocketParameters(url: URL) -> NWParameters {
-        let parameters: NWParameters
-        let options = NWProtocolWebSocket.Options()
-        options.autoReplyPing = true
-        
-        if url.scheme == .wss {
-            parameters = .tls
-        } else {
-            parameters = .tcp
-        }
-
-        parameters.defaultProtocolStack.applicationProtocols.insert(options, at: 0)
-        
-        return parameters
-    }
 }
 
 public final class ISAWebSocket: WebSocketClient {
     private let queue: DispatchQueue
     private let url: URL
     private var connection: NWConnection?
-    
+
     public weak var delegate: ISAWebSocketDelegate?
     
     init(url: URL, queue: DispatchQueue = .global(qos: .userInteractive)) {
@@ -90,11 +63,6 @@ public final class ISAWebSocket: WebSocketClient {
         }
     }
     
-    private func handleFailedConnection(_ error: NWError) {
-        delegate?.socket(self, didReceiveError: .failure(error.errorCode))
-        connection?.cancel()
-    }
-
     private func receiveMessage() {
         guard let connection else {
             return
@@ -142,7 +110,41 @@ public final class ISAWebSocket: WebSocketClient {
         }
     }
     
-    public func sendPing(pongHandler: ((Error?) -> Void)? = nil) {
+    private func handleFailedConnection(_ error: NWError) {
+        delegate?.socket(self, didReceiveError: .failure(error.errorCode))
+        connection?.cancel()
+    }
+
+    public func sendPing() {
+        guard let data = MessageContext.ping.rawValue.asData else {
+            return
+        }
+
+        let metadata = NWProtocolWebSocket.Metadata(opcode: .ping)
+        metadata.setPongHandler(queue) { [weak self] error in
+            self?.handlePong(error: error)
+        }
+
+        let context = NWConnection.ContentContext(identifier: MessageContext.ping.rawValue)
         
+        connection?.send(content: data, contentContext: context, completion: .contentProcessed({ [weak self] error in
+            self?.handleSendPing(error: error)
+        }))
+    }
+
+    private func handlePong(error: NWError?) {
+        if let error {
+            delegate?.socket(self, pongDidFailWithError: .failure(error.errorCode))
+            return
+        }
+
+        delegate?.socketDidReceivePong(self)
+    }
+
+    private func handleSendPing(error: NWError?) {
+        if error != nil {
+            delegate?.socket(self, didReceiveError: .failureSendPing)
+            return
+        }
     }
 }
