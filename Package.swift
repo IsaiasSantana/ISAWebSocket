@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "ISAWebSocket",
     platforms: [
-        .iOS(.v12),
+        .iOS(.v15),
         .macOS(.v14)
     ],
     products: [
