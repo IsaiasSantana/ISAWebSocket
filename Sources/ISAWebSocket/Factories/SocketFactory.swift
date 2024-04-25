@@ -14,7 +14,7 @@ struct SocketFactory {
 
         return NWConnection(to: .url(url), using: parameters)
     }
-    
+
     private static func makeWebSocketParameters(url: URL) -> NWParameters {
         let parameters: NWParameters
         let options = NWProtocolWebSocket.Options()
@@ -27,7 +27,7 @@ struct SocketFactory {
         }
 
         parameters.defaultProtocolStack.applicationProtocols.insert(options, at: 0)
-        
+
         return parameters
     }
 }

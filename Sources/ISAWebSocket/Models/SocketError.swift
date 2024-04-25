@@ -10,7 +10,5 @@ import Foundation
 public enum SocketError: Error {
     case connectionCancelled
     case failure(Int)
-    case malformedURL
-    case failureToStartConnection
     case failureSendPing
 }

@@ -9,5 +9,7 @@ import Foundation
 
 public protocol WebSocketClient {
     func startConnection()
+    func closeConnection()
     func sendPing()
+    func send(message: SocketMessage)
 }

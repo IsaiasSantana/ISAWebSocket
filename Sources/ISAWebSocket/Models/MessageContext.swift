@@ -9,4 +9,6 @@ import Foundation
 
 enum MessageContext: String {
     case ping = "PING"
+    case text = "TEXT"
+    case binary = "BINARY"
 }

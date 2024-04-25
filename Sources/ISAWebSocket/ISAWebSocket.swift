@@ -1,22 +1,13 @@
 import Foundation
 import Network
 
-public protocol ISAWebSocketDelegate: AnyObject {
-    func socketDidCloseConnection(_ socket: WebSocketClient)
-    func socket(_ socket: WebSocketClient, didReceiveMessage message: SocketMessage)
-    func socket(_ socket: WebSocketClient, didReceiveError error: SocketError)
-    func socketDidReceivePong(_ socket: WebSocketClient)
-    func socket(_ socket: WebSocketClient, pongDidFailWithError error: SocketError)
-    func socketDidFailToStartConnection(_ socket: WebSocketClient)
-}
-
 public final class ISAWebSocket: WebSocketClient {
     private let queue: DispatchQueue
     private let url: URL
     private var connection: NWConnection?
 
     public weak var delegate: ISAWebSocketDelegate?
-    
+
     init(url: URL, queue: DispatchQueue = .global(qos: .userInteractive)) {
         self.url = url
         self.queue = queue
@@ -36,17 +27,17 @@ public final class ISAWebSocket: WebSocketClient {
             connection?.start(queue: queue)
         }
     }
-    
+
     private func setupConnectionHandlers() {
         guard let connection else {
             return
         }
-        
+
         connection.stateUpdateHandler = { [weak self] state in
             self?.handleState(state)
         }
     }
-    
+
     private func handleState(_ state: NWConnection.State) {
         switch state {
         case .ready:
@@ -57,12 +48,13 @@ public final class ISAWebSocket: WebSocketClient {
             
         case .cancelled:
             delegate?.socket(self, didReceiveError: .connectionCancelled)
+            closeConnection()
         
         default:
             break
         }
     }
-    
+
     private func receiveMessage() {
         guard let connection else {
             return
@@ -79,7 +71,7 @@ public final class ISAWebSocket: WebSocketClient {
             self?.receiveMessage()
         }
     }
-    
+
     private func handleMessage(data: Data?, context: NWConnection.ContentContext?) {
         guard let data else {
             return
@@ -92,30 +84,39 @@ public final class ISAWebSocket: WebSocketClient {
         switch metadata.opcode {
         case .text:
             handleText(from: data)
-            
+
         case .binary:
             delegate?.socket(self, didReceiveMessage: .data(data))
-            
+
         case .close:
             delegate?.socketDidCloseConnection(self)
-            
+
         default:
             break
         }
     }
-    
+
     private func handleText(from data: Data) {
         if let message = String(data: data, encoding: .utf8) {
             delegate?.socket(self, didReceiveMessage: .string(message))
         }
     }
-    
+
     private func handleFailedConnection(_ error: NWError) {
         delegate?.socket(self, didReceiveError: .failure(error.errorCode))
+        closeConnection()
+    }
+
+    public func closeConnection() {
         connection?.cancel()
+        connection = nil
     }
 
     public func sendPing() {
+        guard let connection else {
+            return
+        }
+
         guard let data = MessageContext.ping.rawValue.asData else {
             return
         }
@@ -126,8 +127,8 @@ public final class ISAWebSocket: WebSocketClient {
         }
 
         let context = NWConnection.ContentContext(identifier: MessageContext.ping.rawValue)
-        
-        connection?.send(content: data, contentContext: context, completion: .contentProcessed({ [weak self] error in
+
+        connection.send(content: data, contentContext: context, completion: .contentProcessed({ [weak self] error in
             self?.handleSendPing(error: error)
         }))
     }
@@ -146,5 +147,44 @@ public final class ISAWebSocket: WebSocketClient {
             delegate?.socket(self, didReceiveError: .failureSendPing)
             return
         }
+    }
+
+    public func send(message: SocketMessage) {
+        switch message {
+        case let .data(data):
+            sendBinary(data)
+
+        case let .string(text):
+            sendText(text)
+        }
+    }
+
+    private func sendBinary(_ data: Data) {
+        let metadata = NWProtocolWebSocket.Metadata(opcode: .text)
+        let context = NWConnection.ContentContext(identifier: MessageContext.binary.rawValue)
+
+        sendData(data, metadata: metadata, context: context)
+    }
+
+    private func sendData(_ data: Data, metadata: NWProtocolWebSocket.Metadata, context: NWConnection.ContentContext) {
+        guard let connection else {
+            return
+        }
+
+        connection.send(content: data, contentContext: context, isComplete: true, completion: .contentProcessed({ [weak self] error in
+            if let error, let self {
+                self.delegate?.socket(self, didReceiveError: .failure(error.errorCode))
+            }
+        }))
+    }
+
+    private func sendText(_ text: String) {
+        guard let data = text.asData else {
+            return
+        }
+        let metadata = NWProtocolWebSocket.Metadata(opcode: .text)
+        let context = NWConnection.ContentContext(identifier: MessageContext.text.rawValue)
+
+        sendData(data, metadata: metadata, context: context)
     }
 }
