@@ -16,6 +16,6 @@ public protocol ISAWebSocketDelegate: AnyObject {
 }
 
 extension ISAWebSocketDelegate {
-    func socketDidReceivePong(_ socket: WebSocketClient) {}
-    func socket(_ socket: WebSocketClient, pongDidFailWithError error: SocketError) {}
+    public func socketDidReceivePong(_ socket: WebSocketClient) {}
+    public func socket(_ socket: WebSocketClient, pongDidFailWithError error: SocketError) {}
 }

@@ -160,7 +160,7 @@ public final class ISAWebSocket: WebSocketClient {
     }
 
     private func sendBinary(_ data: Data) {
-        let metadata = NWProtocolWebSocket.Metadata(opcode: .text)
+        let metadata = NWProtocolWebSocket.Metadata(opcode: .binary)
         let context = NWConnection.ContentContext(identifier: MessageContext.binary.rawValue)
 
         sendData(data, metadata: metadata, context: context)
