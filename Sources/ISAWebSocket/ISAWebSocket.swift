@@ -126,7 +126,7 @@ public final class ISAWebSocket: WebSocketClient {
             self?.handlePong(error: error)
         }
 
-        let context = NWConnection.ContentContext(identifier: MessageContext.ping.rawValue)
+        let context = NWConnection.ContentContext(identifier: MessageContext.ping.rawValue, metadata: [metadata])
 
         connection.send(content: data, contentContext: context, completion: .contentProcessed({ [weak self] error in
             self?.handleSendPing(error: error)
