@@ -8,7 +8,7 @@ public final class ISAWebSocket: WebSocketClient {
 
     public weak var delegate: ISAWebSocketDelegate?
 
-    init(url: URL, queue: DispatchQueue = .global(qos: .userInteractive)) {
+    public init(url: URL, queue: DispatchQueue = .global(qos: .userInteractive)) {
         self.url = url
         self.queue = queue
         connection = SocketFactory.makeConnection(url: url)
