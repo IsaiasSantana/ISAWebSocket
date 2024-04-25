@@ -46,8 +46,24 @@ final class MyDelegate: ISAWebSocketDelegate {
     }
 }
 
+```
 
+## Close connection
+```swift
 socket.closeConnection()
+```
+
+## Send data
+
+```swift
+socket.send(message: .string("some_UTF8_String"))
+
+socket.send(message: .data(Data()))
+```
+
+## Send ping
+```swift
+socket.sendPing()
 ```
 
 ## TODO
