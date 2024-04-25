@@ -161,12 +161,12 @@ public final class ISAWebSocket: WebSocketClient {
 
     private func sendBinary(_ data: Data) {
         let metadata = NWProtocolWebSocket.Metadata(opcode: .binary)
-        let context = NWConnection.ContentContext(identifier: MessageContext.binary.rawValue)
+        let context = NWConnection.ContentContext(identifier: MessageContext.binary.rawValue, metadata: [metadata])
 
-        sendData(data, metadata: metadata, context: context)
+        sendData(data, context: context)
     }
 
-    private func sendData(_ data: Data, metadata: NWProtocolWebSocket.Metadata, context: NWConnection.ContentContext) {
+    private func sendData(_ data: Data, context: NWConnection.ContentContext) {
         guard let connection else {
             return
         }
@@ -183,8 +183,8 @@ public final class ISAWebSocket: WebSocketClient {
             return
         }
         let metadata = NWProtocolWebSocket.Metadata(opcode: .text)
-        let context = NWConnection.ContentContext(identifier: MessageContext.text.rawValue)
+        let context = NWConnection.ContentContext(identifier: MessageContext.text.rawValue, metadata: [metadata])
 
-        sendData(data, metadata: metadata, context: context)
+        sendData(data, context: context)
     }
 }
