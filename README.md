@@ -68,7 +68,3 @@ socket.sendPing()
 
 ## Example
 https://github.com/IsaiasSantana/ISAWebSocketExample
-
-## TODO
-
-- [ ] SSL Pinning
