@@ -29,20 +29,20 @@ final class MyDelegate: ISAWebSocketDelegate {
         }
     }
 
-    func socketDidCloseConnection(_ socket: WebSocketClient) {
-
-    }
-    
-    func socket(_ socket: WebSocketClient, didReceiveError error: SocketError) {
-
+    func socket(_ socket: WebSocketClient, didReceiveConnectionStatus status: ConnectionStatus) {
+        
     }
 
-    func socketDidReceivePong(_ socket: WebSocketClient) {
-
+    func socket(_ socket: WebSocketClient, didReceiveMessage message: Result<SocketMessage, NWError>) {
+        
     }
 
-    func socket(_ socket: WebSocketClient, pongDidFailWithError error: SocketError) {
+    func socket(_ socket: WebSocketClient, sendMessageDidFailedWithError error: NWError) {
+        
+    }
 
+    func socket(_ socket: WebSocketClient, didReceivePingPongStatus status: PingPongStatus) {
+       
     }
 }
 
