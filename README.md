@@ -5,8 +5,7 @@ Simple WebSocket client on top of the Network framework
 ## Usage
 
 ```swift
-let queue = DispatchQueue.global(qos: .userInitiated)
-let socket = ISAWebSocket(url: URL(string: "wss://socketurl")!, queue: queue)
+let socket = ISAWebSocket(url: URL(string: "wss://socketurl")!)
 
 socket.delegate = MyDelegate()
 
