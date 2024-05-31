@@ -2,15 +2,16 @@ import Foundation
 import Network
 
 public final class ISAWebSocket: WebSocketClient {
-    private let queue: DispatchQueue
+    private let queue: DispatchQueue = .global(qos: .userInteractive)
     private let url: URL
+    private let options: NWProtocolWebSocket.Options
     private var connection: NWConnection?
 
     public weak var delegate: ISAWebSocketDelegate?
 
-    public init(url: URL, queue: DispatchQueue = .global(qos: .userInteractive)) {
+    public init(url: URL, options: NWProtocolWebSocket.Options = .defaultOptions) {
         self.url = url
-        self.queue = queue
+        self.options = options
         connection = SocketFactory.makeConnection(url: url)
     }
 
@@ -40,19 +41,27 @@ public final class ISAWebSocket: WebSocketClient {
 
     private func handleState(_ state: NWConnection.State) {
         switch state {
+        case let .waiting(error):
+            handleWaitingState(error)
+
         case .ready:
             receiveMessage()
             
         case .failed(let error):
             handleFailedConnection(error)
-            
+
         case .cancelled:
-            delegate?.socket(self, didReceiveError: .connectionCancelled)
+            delegate?.socket(self, didReceiveConnectionStatus: .cancelled)
             closeConnection()
-        
+
         default:
             break
         }
+    }
+
+    private func handleWaitingState(_ error: NWError) {
+        delegate?.socket(self, didReceiveConnectionStatus: .failed(error))
+        closeConnection()
     }
 
     private func receiveMessage() {
@@ -62,7 +71,8 @@ public final class ISAWebSocket: WebSocketClient {
 
         connection.receiveMessage { [weak self] (data, context, _, error) in
             if let error, let self {
-                delegate?.socket(self, didReceiveError: .failure(error.errorCode))
+                self.delegate?.socket(self, didReceiveMessage: .failure(error))
+                self.closeConnection()
                 return
             }
             
@@ -86,10 +96,10 @@ public final class ISAWebSocket: WebSocketClient {
             handleText(from: data)
 
         case .binary:
-            delegate?.socket(self, didReceiveMessage: .data(data))
+            delegate?.socket(self, didReceiveMessage: .success(.data(data)))
 
         case .close:
-            delegate?.socketDidCloseConnection(self)
+            delegate?.socket(self, didReceiveConnectionStatus: .closed)
 
         default:
             break
@@ -98,12 +108,12 @@ public final class ISAWebSocket: WebSocketClient {
 
     private func handleText(from data: Data) {
         if let message = String(data: data, encoding: .utf8) {
-            delegate?.socket(self, didReceiveMessage: .string(message))
+            delegate?.socket(self, didReceiveMessage: .success(.string(message)))
         }
     }
 
     private func handleFailedConnection(_ error: NWError) {
-        delegate?.socket(self, didReceiveError: .failure(error.errorCode))
+        delegate?.socket(self, didReceiveConnectionStatus: .failed(error))
         closeConnection()
     }
 
@@ -135,16 +145,16 @@ public final class ISAWebSocket: WebSocketClient {
 
     private func handlePong(error: NWError?) {
         if let error {
-            delegate?.socket(self, pongDidFailWithError: .failure(error.errorCode))
+            delegate?.socket(self, didReceivePingPongStatus: .failedPong(error))
             return
         }
 
-        delegate?.socketDidReceivePong(self)
+        delegate?.socket(self, didReceivePingPongStatus: .receivedPong)
     }
 
     private func handleSendPing(error: NWError?) {
-        if error != nil {
-            delegate?.socket(self, didReceiveError: .failureSendPing)
+        if let error {
+            delegate?.socket(self, didReceivePingPongStatus: .failedPing(error))
             return
         }
     }
@@ -173,7 +183,7 @@ public final class ISAWebSocket: WebSocketClient {
 
         connection.send(content: data, contentContext: context, isComplete: true, completion: .contentProcessed({ [weak self] error in
             if let error, let self {
-                self.delegate?.socket(self, didReceiveError: .failure(error.errorCode))
+                self.delegate?.socket(self, sendMessageDidFailedWithError: error)
             }
         }))
     }

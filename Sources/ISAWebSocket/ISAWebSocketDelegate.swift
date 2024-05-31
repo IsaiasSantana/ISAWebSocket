@@ -6,16 +6,11 @@
 //
 
 import Foundation
+import Network
 
 public protocol ISAWebSocketDelegate: AnyObject {
-    func socketDidCloseConnection(_ socket: WebSocketClient)
-    func socket(_ socket: WebSocketClient, didReceiveMessage message: SocketMessage)
-    func socket(_ socket: WebSocketClient, didReceiveError error: SocketError)
-    func socketDidReceivePong(_ socket: WebSocketClient)
-    func socket(_ socket: WebSocketClient, pongDidFailWithError error: SocketError)
-}
-
-extension ISAWebSocketDelegate {
-    public func socketDidReceivePong(_ socket: WebSocketClient) {}
-    public func socket(_ socket: WebSocketClient, pongDidFailWithError error: SocketError) {}
+    func socket(_ socket: WebSocketClient, didReceiveConnectionStatus status: ConnectionStatus)
+    func socket(_ socket: WebSocketClient, didReceiveMessage message: Result<SocketMessage, NWError>)
+    func socket(_ socket: WebSocketClient, sendMessageDidFailedWithError error: NWError)
+    func socket(_ socket: WebSocketClient, didReceivePingPongStatus status: PingPongStatus)
 }

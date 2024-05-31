@@ -9,17 +9,15 @@ import Foundation
 import Network
 
 struct SocketFactory {
-    static func makeConnection(url: URL) -> NWConnection {
-        let parameters = makeWebSocketParameters(url: url)
+    static func makeConnection(url: URL, options: NWProtocolWebSocket.Options = .defaultOptions) -> NWConnection {
+        let parameters = makeWebSocketParameters(url: url, options: options)
 
         return NWConnection(to: .url(url), using: parameters)
     }
 
-    private static func makeWebSocketParameters(url: URL) -> NWParameters {
+    private static func makeWebSocketParameters(url: URL, options: NWProtocolWebSocket.Options) -> NWParameters {
         let parameters: NWParameters
-        let options = NWProtocolWebSocket.Options()
-        options.autoReplyPing = true
-        
+
         if url.scheme == .wss {
             parameters = .tls
         } else {
